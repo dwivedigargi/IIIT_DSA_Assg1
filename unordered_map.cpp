@@ -81,7 +81,7 @@ void HTable<T1, T2>::erase(T1 key) {
     Node<T1, T2> *temp = new Node<T1, T2>();
     temp=arr[h];
     if(arr[h]==nullptr) {
-        cout<<"Not Found"<<endl;
+//        cout<<"Not Found"<<endl;
         return;
     }
     if(arr[h]->key==key) {
@@ -92,7 +92,7 @@ void HTable<T1, T2>::erase(T1 key) {
     Node<T1, T2> *to_del = new Node<T1, T2>();
     while(temp->next!=nullptr) {
         if(key==temp->next->key) {
-            cout<<"found"<<endl;
+//            cout<<"found"<<endl;
             to_del=temp->next;
             temp->next=temp->next->next;
             delete to_del;
@@ -100,7 +100,7 @@ void HTable<T1, T2>::erase(T1 key) {
         }
         temp=temp->next;
     }
-    cout<<"Not Found"<<endl;
+//    cout<<"Not Found"<<endl;
 }
 
 template <typename T1, typename T2>
@@ -130,6 +130,7 @@ T2 HTable<T1, T2>:: operator[] (T1 key) {
         }
         temp=temp->next;
     }
+    return temp->value; //just to remove warning. control never comes here.
 }
 
 template <typename T1>
@@ -179,3 +180,4 @@ int main () {
         i++;
     }
 }
+
