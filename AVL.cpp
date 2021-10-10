@@ -10,8 +10,9 @@ public:
     T value;
     int Count;
     int height;
-    node() {parent=left=right=nullptr; Count=1; height=0;}
-    node(T val) {parent=left=right=nullptr; Count=1; height=0; value=val;}
+    int weight;
+    node() {parent=left=right=nullptr; Count=1; height=0; weight=1;}
+    node(T val) {parent=left=right=nullptr; Count=1; height=0; value=val; weight=1;}
 };
 
 template <typename T>
@@ -44,8 +45,79 @@ public:
     T upperbound(T val, bool &exists, comp c=comp());
     T lowerbound(T val, bool &exists, comp c=comp());
     T closestTo(T val, comp c=comp());
-//    T klargest(int k);
+    T klargest(node<T>* r, int k);
+    int inRange(T low, T high, comp c=comp());
 };
+
+template <typename T, typename comp>
+T AVL<T,comp>::klargest(node<T>* r, int k) {
+    if(W(r->right)==k-1)
+        return r->value;
+    else if(W(r->right)>k-1)
+        return klargest(r->right, k);
+    else
+        return klargest(r->left, k-W(r->right)-1);
+}
+
+template <typename T, typename comp>
+int AVL<T, comp>::inRange(T low, T high, comp c) {
+    bool exists1, exists2;
+    T lb=lowerbound(low, exists1);
+    T ub=lowerbound(high, exists2);
+
+    if(c(lb, high)==1)
+        return 0;
+
+    char *arr = new char[W(root)];
+    for(int i=0; i<W(root); i++)
+        arr[i]='f';
+
+    int lesserNodes = 0, greaterNodes = 0;
+    node<T>* trav = root;
+    int i=0;
+    while(trav!=nullptr && exists1) {
+        if(c(trav->value, lb)==-1) {
+            trav=trav->right;
+            arr[i++]='r';
+        }
+        else if(c(trav->value, lb)==1) {
+            trav=trav->left;
+            arr[i++]='l';
+        }
+        else {
+            lesserNodes = W(trav->left);
+            break;
+        }
+    }
+    for(int i=0; i<W(root); i++)
+        cout<<arr[i]<<endl;
+    i=0;
+    int foundBranch = -1;
+    trav = root;
+    while(trav!=nullptr && exists2) {
+        if(c(trav->value, ub)==-1) {
+            if( foundBranch==-1 && arr[i++]!='r') {
+                foundBranch = W(trav);
+            }
+            trav=trav->right;
+        }
+        else if(c(trav->value, ub)==1) {
+            if(foundBranch==-1 && arr[i++]!='l') {
+                foundBranch = W(trav);
+            }
+            trav=trav->left;
+        }
+        else {
+            if(foundBranch==-1)
+                foundBranch = W(trav);
+            greaterNodes = W(trav->right);
+            break;
+        }
+    }
+    if(foundBranch==-1)
+        return 0;
+    return foundBranch-lesserNodes-greaterNodes;
+}
 
 template <typename T, typename comp>
 node<T>* AVL<T, comp>::rightRotate(node<T>* y) {
@@ -60,7 +132,9 @@ node<T>* AVL<T, comp>::rightRotate(node<T>* y) {
         t->parent=y;
 
     y->height = max(H(y->left), H(y->right))+1;
+    y->weight = W(y->left) + W(y->right) + 1;
     x->height = max(H(x->left), H(x->right))+1;
+    x->weight = W(x->left) + W(x->right) + 1;
 
     return x;
 }
@@ -78,7 +152,9 @@ node<T>* AVL<T, comp>::leftRotate(node<T>* x) {
         t->parent = x;
 
     x->height = max(H(x->left), H(x->right))+1;
+    x->weight = W(x->left) + W(x->right) + 1;
     y->height = max(H(y->left), H(y->right))+1;
+    y->weight = W(y->left) + W(y->right) + 1;
 
     return y;
 }
@@ -89,6 +165,14 @@ int H(node<T>* n) {
         return -1;
     else
         return n->height;
+}
+
+template<typename T>
+int W(node<T>* n) {
+    if(n==nullptr)
+        return 0;
+    else
+        return n->weight;
 }
 
 template<typename T>
@@ -141,6 +225,7 @@ void AVL<T, comp>::insert(T to_be_inserted, comp c)
                 r = r->left;
         else {
             r->Count+=1;
+            r->weight+=1;
             return;
         }
     }
@@ -149,6 +234,7 @@ void AVL<T, comp>::insert(T to_be_inserted, comp c)
     trav = r;
     while(trav!=nullptr) {
         trav->height = max(H<T>(trav->left), H<T>(trav->right)) + 1;
+        trav->weight = W(trav->left) + W(trav->right) + 1;
         trav=trav->parent;
     }
 
@@ -210,6 +296,7 @@ void AVL<T, comp>::insert(T to_be_inserted, comp c)
     trav = r;
     while(trav!=nullptr) {
         trav->height = max(H<T>(trav->left), H<T>(trav->right)) + 1;
+        trav->weight = W(trav->left) + W(trav->right) + 1;
         trav=trav->parent;
     }
     return;
@@ -237,6 +324,7 @@ void AVL<T,comp>::del(T val, node<T>* roo, comp c) {
         return;
     else if(trav->Count>1) {
         trav->Count--;
+        trav->weight--;
         return;
     }
     else if(trav->left==nullptr || trav->right==nullptr) {  //has at most 1 child
@@ -289,6 +377,7 @@ void AVL<T,comp>::del(T val, node<T>* roo, comp c) {
     tobal = r;
     while(r!=nullptr) {
         r->height = max(H<T>(r->left), H<T>(r->right)) + 1;
+        r->weight = W(r->left) + W(r->right) + 1;
 //        cout<<r->value<<": "<<H<T>(r->left)<<", "<<H<T>(r->right)<<", "<<r->height<<endl;
 //        cout<<r->value<<" "<<(r->parent==nullptr)<<endl;
         r=r->parent;
@@ -359,6 +448,7 @@ void AVL<T,comp>::del(T val, node<T>* roo, comp c) {
 
     while(tobal!=nullptr) {
         tobal->height = max(H<T>(tobal->left), H<T>(tobal->right)) + 1;
+        tobal->weight = W(tobal->left) + W(tobal->right) + 1;
         tobal=tobal->parent;
     }
     return;
@@ -367,10 +457,12 @@ void AVL<T,comp>::del(T val, node<T>* roo, comp c) {
 template <typename T, typename comp>
 void AVL<T, comp>::displayTree(node<T>* root)
 {
+    if(root==nullptr)
+        return;
     if(root->left != nullptr)
         displayTree(root->left);
     for(int i=0; i<root->Count; i++) {
-        cout<<root->value<<": "<<root->height<<endl;
+        cout<<root->value<<": "<<root->height<<", "<<root->weight<<endl;
     }
     if(root->right != nullptr)
         displayTree(root->right);
@@ -485,21 +577,52 @@ T AVL<T,comp>::closestTo(T val, comp c) {
         return ub;
 }
 
+class test {
+public:
+    int x;
+    test() {x=0;}
+    test(int v) {x=v;}
+    friend ostream& operator<<(ostream& os, const test& dt);
+};
+
+ostream& operator<<(ostream& os, const test& dt)
+{
+    os << dt.x;
+    return os;
+}
+
+class compare {
+public:
+    int operator()(test t1, test t2) {
+        if(t1.x<t2.x)
+            return -1;
+        else if (t1.x>t2.x)
+            return 1;
+        else
+            return 0;
+    }
+};
+
 int main() {
-    AVL<int> a;
+    AVL<test, compare> a;
     bool exists;
-    a.insert(1);
-    a.insert(2);
-    a.insert(3);
-    a.insert(4);
-//    a.insert(6);
-//    a.del(4, a.root);
+    test t1(2);
+    test t2(4);
+    test t3(1);
+    test t4(7);
+    test t5(5);
+    test t6(3);
+    a.insert(t1);
+    a.insert(t2);
+    a.insert(t3);
+    a.insert(t4);
+    a.insert(t5);
+    a.insert(t5);
+    cout<<a.klargest(a.root, 5);
+//    a.del(t3, a.root);
+//    a.insert(t8);
+//    a.insert(t9);
+//    a.insert(t10);
+//    a.insert(t11);
 //    a.displayTree(a.root);
-//    a.del(3, a.root);
-//    a.displayTree(a.root);
-//    a.del(0, a.root);
-//    a.displayTree(a.root);
-    cout<<a.closestTo(5)<<endl;
-//    cout<<a.upperbound("gargi", exists)<<endl;
-//    cout<<a.count_occur(0);
 }
